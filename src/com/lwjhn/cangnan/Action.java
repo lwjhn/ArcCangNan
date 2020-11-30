@@ -1,5 +1,6 @@
 package com.lwjhn.cangnan;
 
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.lwjhn.domino.ArcBase;
 import com.lwjhn.domino.BaseUtils;
@@ -7,20 +8,26 @@ import com.lwjhn.domino.DatabaseCollection;
 import com.lwjhn.domino2sql.config.DefaultConfig;
 import com.lwjhn.util.AutoCloseableBase;
 import com.lwjhn.util.DigestUtils;
+import com.lwjhn.util.FileOperator;
+import com.sun.xml.internal.ws.api.message.Attachment;
 import lotus.domino.Database;
 import lotus.domino.Document;
 import lotus.domino.DocumentCollection;
 import lotus.domino.EmbeddedObject;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.text.StringEscapeUtils;
 import org.dom4j.tree.BaseElement;
 import org.dom4j.tree.DefaultElement;
 
 import java.io.*;
 import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
+import java.util.Map;
 import java.util.Objects;
 import java.util.StringJoiner;
+import java.util.Vector;
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * @Author: lwjhn
@@ -86,7 +93,7 @@ public class Action extends ArcBase {
         }
     }
 
-    public void outputAttachment(org.dom4j.Document bill, lotus.domino.Document srcdoc, String filePath) throws Exception {
+    public void outputAttachment(org.dom4j.Document bill, lotus.domino.Document srcdoc, String filePath, ModuleType moduleType) throws Exception {
         String srv = null, dbpath = null, key = null, query = "";
         Database mssdb = null;
         DocumentCollection mssdc = null;
@@ -107,7 +114,7 @@ public class Action extends ArcBase {
             if (mssdb == null || !mssdb.isOpen())
                 throw new Exception("can't open database ! " + srv + " !! " + dbpath);
 
-            outputAttachment(bill.getRootElement(), mssdc = mssdb.search(query, null, 0), filePath);
+            outputAttachment(bill.getRootElement(), mssdc = mssdb.search(query, null, 0), filePath, moduleType);
         } catch (Exception e) {
             throw e;
         } finally {
@@ -115,12 +122,12 @@ public class Action extends ArcBase {
         }
     }
 
-    private void outputAttachment(org.dom4j.Element billRoot, DocumentCollection mssdc, String filePath) throws Exception {
+    private void outputAttachment(org.dom4j.Element billRoot, DocumentCollection mssdc, String filePath, ModuleType moduleType) throws Exception {
         Document mssdoc = null, msstdoc = null;
         try {
             mssdoc = mssdc.getFirstDocument();
             while (mssdoc != null) {
-                outputAttachment(billRoot, mssdoc, filePath);
+                outputAttachment(billRoot, mssdoc, filePath, moduleType);
                 mssdoc = mssdc.getNextDocument(msstdoc = mssdoc);
                 recycle(msstdoc);
             }
@@ -131,49 +138,65 @@ public class Action extends ArcBase {
         }
     }
 
-    private void outputAttachment(org.dom4j.Element billRoot, Document mssdoc, String filePath) throws Exception {
+    public void outputAttachment(org.dom4j.Element billRoot, Document mssdoc, String filepath, ModuleType moduleType) throws Exception {
+        EmbeddedObject eo = null;
+        String filename;
+        Matcher matcher;
+        AttachmentType ftype = null;
+        int i;
         try {
-/*
-<fileinfo title="材料信息">
-    <CLMC title="材料名称">高兴夫关于《关于防控新型冠状病毒肺炎疫情应急物资费用结算工作进展情况的 再次通报》的批示.pdf</CLMC>
-    <CLLX title="材料类型">承办单</CLLX>
-    <SQFS title="收取方式">电子收取</SQFS>
-    <WBSSM title="未收取说明"></WBSSM>
-    <detailinfo title="计算机文件详细信息">
-      <WJM title="计算机文件名">高兴夫关于《关于防控新型冠状病毒肺炎疫情应急物资费用结算工作进展情况的 再次通报》的批示.pdf</WJM>
-      <CJSJ title="计算机文件创建时间">2020-07-24 09:23:30</CJSJ>
-      <XGSJ title="计算机文件修改时间">2020-07-24 09:23:30</XGSJ>
-      <WJDX title="计算机文件大小">780.34KB</WJDX>
-      <GSXX title="计算机文件格式信息">PDF</GSXX>
-      <WJSZZY title="文件数字摘要值">MD5:9574874b55a35486fa67284f0e014cd4</WJSZZY>
-    </detailinfo>
-  </fileinfo>
- */
+            Vector<String> all = databaseCollection.getSession().evaluate("@AttachmentNames", mssdoc);
+            if (all == null || all.size() < 1) return;
+            Vector<String> files = mssdoc.hasItem("AttachFile") ? mssdoc.getItemValue("AttachFile") : new Vector(),
+                    vAlias = mssdoc.hasItem("AttachTitle") ? mssdoc.getItemValue("AttachTitle") : new Vector();
 
+            for (String file : all) {
+                if ((i = files.indexOf(file)) < 0 || vAlias.size() < i || "".equals(filename = String.valueOf(vAlias.get(i)))) {
+                    filename = file;
+                } else {
+                    matcher = DefaultConfig.PATTERN_EXT.matcher(file);
+                    filename += (matcher.find() ? matcher.group() : "");
+                }
+                recycle(eo);
+                if ((eo = mssdoc.getAttachment(file)) == null) continue;
+
+                billRoot.add(outputAttachment(eo, filepath, moduleType.getTypes()
+                        .get(AttachForm.enumValueOfQuiet(mssdoc.getItemValueString("Form")))
+                        .get(i < 0 ? AttachNormal.UNNORMAL : AttachNormal.NORMAL), filename));
+            }
         } catch (Exception e) {
             throw e;
         } finally {
-            //recycle(mssdoc);
+            recycle(eo);
         }
     }
 
-    public org.dom4j.Element outputAttachment(EmbeddedObject eo, File output) throws Exception {
-        Matcher matcher = null;
+    public static final Pattern PATTERN_EXT = Pattern.compile("\\.([0-9a-z]+$)", Pattern.CASE_INSENSITIVE);
+
+    public org.dom4j.Element outputAttachment(EmbeddedObject eo, String filepath, AttachmentType ftype, String filename) throws Exception {
         InputStream is = null;
         OutputStream os = null;
+        Matcher matcher = null;
         try {
-            org.dom4j.Element node = new BaseElement("detailinfo").addAttribute("title", "计算机文件详细信息");
-            node.addElement("WJM").addAttribute("title", "计算机文件名").setText(output.getName());
+            new File(filepath = FileOperator.getAvailablePath(filepath, ftype.getFolder())).mkdirs();
+
+            org.dom4j.Element root = new BaseElement("fileinfo").addAttribute("title", "材料信息");
+            root.addElement("CLMC").addAttribute("title", "材料名称").setText(filename);
+            root.addElement("CLLX").addAttribute("title", "材料类型").setText(ftype.getAlias());
+            root.addElement("SQFS").addAttribute("title", "收取方式").setText("电子收取");
+            root.addElement("WBSSM").addAttribute("title", "未收取说明");
+            org.dom4j.Element node = root.addElement("detailinfo").addAttribute("title", "计算机文件详细信息");
+            node.addElement("WJM").addAttribute("title", "计算机文件名").setText(filename);
             node.addElement("CJSJ").addAttribute("title", "计算机文件创建时间").setText(DefaultConfig.DateFormat.format(eo.getFileCreated().toJavaDate()));
             node.addElement("XGSJ").addAttribute("XGSJ", "计算机文件修改时间").setText(DefaultConfig.DateFormat.format(eo.getFileModified().toJavaDate()));
             node.addElement("WJDX").addAttribute("XGSJ", "计算机文件大小").setText(FileUtils.byteCountToDisplaySize(eo.getFileSize()));
-            matcher = DefaultConfig.PATTERN_EXT.matcher(eo.getName());
-            node.addElement("GSXX").addAttribute("title", "计算机文件格式信息").setText((matcher.find() ? matcher.group() : ""));
+            matcher = PATTERN_EXT.matcher(eo.getName());
+            node.addElement("GSXX").addAttribute("title", "计算机文件格式信息").setText(matcher.find(1) ? matcher.group(1) : "");
             node.addElement("WJSZZY").addAttribute("title", "文件数字摘要值").setText("MD5:" + DigestUtils.copyFileAndDigest(
                     is = eo.getInputStream(),
-                    os = new FileOutputStream(output)
+                    os = new FileOutputStream(filepath + "/" + filename)
             ));
-            return node;
+            return root;
         } catch (Exception e) {
             throw e;
         } finally {

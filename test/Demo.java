@@ -1,3 +1,6 @@
+import com.lwjhn.cangnan.AttachForm;
+import com.lwjhn.cangnan.AttachNormal;
+import com.lwjhn.cangnan.ModuleType;
 import com.lwjhn.domino2sql.config.DefaultConfig;
 import com.lwjhn.util.AutoCloseableBase;
 import com.lwjhn.util.DigestUtils;
@@ -12,6 +15,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.net.URL;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * @Author: lwjhn
@@ -56,18 +62,15 @@ public class Demo {
         }
     }
 
+    public static final Pattern PATTERN_EXT = Pattern.compile("\\.([0-9a-z]+$)", Pattern.CASE_INSENSITIVE);
     @Test
     public void test2() throws Exception {
-        File file = new File("C:\\test\\J102-WS·2020-D10-0007.doc");
-        org.dom4j.Element node = new BaseElement("detailinfo").addAttribute("title", "计算机文件详细信息");
-        node.addElement("WJM").addAttribute("title", "计算机文件名").setText(file.getName());
-        node.addElement("CJSJ").addAttribute("title", "计算机文件创建时间").setText(DefaultConfig.DateFormat.format(file.lastModified()));
-        node.addElement("XGSJ").addAttribute("XGSJ", "计算机文件修改时间").setText(DefaultConfig.DateFormat.format(file.lastModified()));
-        //node.addElement("WJDX").addAttribute("XGSJ", "计算机文件大小").setText(FileUtils.byteCountToDisplaySize(FileUtils.sizeOf(file)));
-        node.addElement("GSXX").addAttribute("title", "计算机文件格式信息").setText(file.getName().replaceAll(".*\\.", ""));
-        //node.addElement("WJSZZY").addAttribute("title","文件数字摘要值").setText("MD5:"+ org.apache.commons.codec.digest.DigestUtils.md5Hex(is));
-        System.out.println(node.asXML());//MD5:
-
+        ModuleType moduleType = ModuleType.DISPATCH;
+        int i=1; String Form = AttachForm.PROCESSING.toString();
+        System.out.println(Form);
+        System.out.println(moduleType.getTypes()
+                .get(AttachForm.enumValueOfQuiet(Form))
+                .get(i < 0 ? AttachNormal.UNNORMAL : AttachNormal.NORMAL).getAlias());
     }
 
 }
