@@ -1,5 +1,8 @@
 package com.lwjhn.cangnan;
 
+import com.lwjhn.cangnan.Action;
+import com.lwjhn.cangnan.AttachmentType;
+import com.lwjhn.cangnan.ModuleType;
 import com.lwjhn.domino.DatabaseCollection;
 import com.lwjhn.util.FileOperator;
 import com.lwjhn.util.XmlBase;
