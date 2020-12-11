@@ -45,8 +45,8 @@ public class Demo {
 
     @Test
     public void test4() throws Exception {
-        System.out.println(Pattern.compile("^Notice$",Pattern.CASE_INSENSITIVE).matcher("notice").lookingAt());
-        System.out.println(Pattern.compile("^Notice$",Pattern.CASE_INSENSITIVE).matcher("notice").matches());
+        System.out.println(Pattern.compile("^Notice$", Pattern.CASE_INSENSITIVE).matcher("notice").lookingAt());
+        System.out.println(Pattern.compile("^Notice$", Pattern.CASE_INSENSITIVE).matcher("notice").matches());
         System.out.println(FileOperator.getFileAliasByRegex("ads\\2212.pdf"));
     }
 
@@ -75,14 +75,6 @@ public class Demo {
         System.out.println(FileOperator.getFileNameByRegex("/aid/sdk\\sdf/111.pdf"));
         System.out.println(FileOperator.getFileFolderByRegex("/aid/sdk\\sdf/111.pdf"));
         System.out.println(FileOperator.getAvailablePath(false, "", "1111:333>444\\\\7777.88///999/", "aaa//bb/ccc", "/uuuuu///kkk/"));
-//
-//        Matcher matcher = Pattern.compile("^([A-Za-z]:)?([/\\\\][^:?\"><*]*)").matcher("d:/5656");
-//        System.out.println(matcher.find() ? matcher.group(1) + " ---> " + matcher.group(2) : "none");
-//        System.out.println("\\\\ad///12\\//3dkkkkdk.pdf".replaceAll(".*[/\\\\]",""));
-//        System.out.println(XmlBase.read(new File("c:/test/test.xml")).asXML());
-//        System.out.println("\n\n---------------------\n\n");
-//        System.out.println(XmlBase.read(new File("C:/test/J102-WS·2020-D10-0007/基本信息.xml")).asXML());
-//        XmlBase.write(XmlBase.read(new File("C:/test/J102-WS·2020-D10-0007/基本信息.xml")),new File("c:/test/test3.xml"));
     }
 
     @Test
