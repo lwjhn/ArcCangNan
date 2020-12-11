@@ -92,6 +92,7 @@ public class DigestUtils {
             output.write(buffer, 0, read);
             read = inputStream.read(buffer);
         }
+        output.flush();
         return encodeHexString(digest.digest());
     }
 

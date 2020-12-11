@@ -1,7 +1,5 @@
 package com.lwjhn.util;
 
-import com.lwjhn.cangnan.AttachForm;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -15,15 +13,6 @@ import java.text.SimpleDateFormat;
  * @Version: 1.0
  */
 public class Common {
-    public static <T extends Enum<T>> T enumValueOfQuiet(Class<T> enumType, String name) {
-        try {
-            return name == null ? null : T.valueOf(enumType, name.toUpperCase() );
-        }catch (Exception e){
-            e.printStackTrace();
-            return null;
-        }
-    }
-
     public static void printXML(java.io.PrintWriter pw, String strXML) {
         try {
             pw.println("content-type:text/xml; charset=UTF-8");
